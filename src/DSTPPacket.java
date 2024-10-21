@@ -2,44 +2,53 @@ import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.Key;
+import java.security.MessageDigest;
 import java.util.Arrays;
 
 public class DSTPPacket {
     private byte[] payload;
     private byte[] iv;
-    private byte[] hmac;
+    private byte[] integrityCheck;
 
     // Constructor: Encrypt and create HMAC for the payload
-    public DSTPPacket(byte[] data, Key encryptionKey, Key macKey, Cipher cipher, Mac mac) throws Exception {
+    public DSTPPacket(byte[] data, Key encryptionKey, Key macKey, Cipher cipher, Mac mac, MessageDigest messageDigest, boolean useHMAC) throws Exception {
         // Encrypt data
         cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
         this.iv = cipher.getIV(); // Get IV if used
         this.payload = cipher.doFinal(data);
 
-        // Generate HMAC for integrity
-        mac.init(macKey);
-        this.hmac = mac.doFinal(concatenate(iv, payload));
+        // Generate HMAC or Hash for integrity
+        if (useHMAC) {
+            mac.init(macKey);
+            this.integrityCheck = mac.doFinal(concatenate(iv, payload));
+        } else {
+            this.integrityCheck = messageDigest.digest(concatenate(iv, payload));
+        }
     }
 
     // Combine IV, encrypted payload, and HMAC into a single byte array
     public byte[] toBytes() {
-        return concatenate(iv, payload, hmac);
+        return concatenate(iv, payload, integrityCheck);
     }
 
     // Parse a received packet to extract the encrypted payload, IV, and HMAC
-    public static byte[] decryptPacket(byte[] receivedPacket, Key encryptionKey, Key macKey, Cipher cipher, Mac mac) throws Exception {
-        int ivLength = 16; // Length of IV (based on encryption algorithm)
-        int hmacLength = mac.getMacLength();
+    public static byte[] decryptPacket(byte[] receivedPacket, Key encryptionKey, Key macKey, Cipher cipher, Mac mac, MessageDigest messageDigest, boolean useHMAC) throws Exception {        int ivLength = 16; // Length of IV (based on encryption algorithm)
+        int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
 
         // Extract IV, payload, and HMAC
         byte[] iv = Arrays.copyOfRange(receivedPacket, 0, ivLength);
-        byte[] encryptedPayload = Arrays.copyOfRange(receivedPacket, ivLength, receivedPacket.length - hmacLength);
-        byte[] receivedHmac = Arrays.copyOfRange(receivedPacket, receivedPacket.length - hmacLength, receivedPacket.length);
+        byte[] encryptedPayload = Arrays.copyOfRange(receivedPacket, ivLength, receivedPacket.length - integrityLength);
+        byte[] receivedIntegrityCheck = Arrays.copyOfRange(receivedPacket, receivedPacket.length - integrityLength, receivedPacket.length);
 
-        // Verify HMAC integrity
-        mac.init(macKey);
-        byte[] calculatedHmac = mac.doFinal(concatenate(iv, encryptedPayload));
-        if (!Arrays.equals(receivedHmac, calculatedHmac)) {
+        // Verify integrity
+        byte[] calculatedIntegrity;
+        if (useHMAC) {
+            mac.init(macKey);
+            calculatedIntegrity = mac.doFinal(concatenate(iv, encryptedPayload));
+        } else {
+            calculatedIntegrity = messageDigest.digest(concatenate(iv, encryptedPayload));
+        }
+        if (!Arrays.equals(receivedIntegrityCheck, calculatedIntegrity)) {
             throw new SecurityException("Packet integrity check failed");
         }
 

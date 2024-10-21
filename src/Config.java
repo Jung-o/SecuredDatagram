@@ -3,6 +3,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.security.Key;
+import java.security.MessageDigest;
 import java.util.Map;
 
 public class Config {
@@ -10,6 +11,8 @@ public class Config {
     private Key macKey;
     private Cipher cipher;
     private Mac mac;
+    private MessageDigest messageDigest;
+    private boolean useHMAC;
 
     public Config(String configFilePath) throws Exception {
         // Parse the configuration file
@@ -20,6 +23,8 @@ public class Config {
         String symmetricKeyHex = config.get("SYMMETRIC_KEY");
         int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
         String ivHex = config.get("IV");
+        String integrityType = config.get("INTEGRITY");
+        String hashAlgorithm = config.get("H");
         String macAlgorithm = config.get("MAC");
         String macKeyHex = config.get("MACKEY");
         int macKeySize = Integer.parseInt(config.get("MACKEY_SIZE"));
@@ -30,13 +35,6 @@ public class Config {
         }
         this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), extractAlgorithm(cipherAlgorithm));
 
-
-        // Initialize MAC key
-        if (macKeyHex.length() * 8 != macKeySize) {
-            throw new IllegalArgumentException("MAC key size does not match the provided key.");
-        }
-        this.macKey = new SecretKeySpec(macKeyHex.getBytes(), macAlgorithm);
-
         // Initialize cipher
         this.cipher = Cipher.getInstance(cipherAlgorithm);
         if (ivHex != null && !ivHex.equalsIgnoreCase("NULL")) {
@@ -46,9 +44,24 @@ public class Config {
             this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
         }
 
-        // Initialize MAC
-        this.mac = Mac.getInstance(macAlgorithm);
-        this.mac.init(macKey);
+        if ("HMAC".equalsIgnoreCase(integrityType)) {
+            this.useHMAC = true;
+            // Initialize MAC key
+            if (macKeyHex.length() * 8 != macKeySize) {
+                throw new IllegalArgumentException("MAC key size does not match the provided key.");
+            }
+            this.macKey = new SecretKeySpec(macKeyHex.getBytes(), macAlgorithm);
+
+            // Initialize MAC
+            this.mac = Mac.getInstance(macAlgorithm);
+            this.mac.init(macKey);
+        } else if ("H".equalsIgnoreCase(integrityType)) {
+            this.useHMAC = false;
+            // Initialize MessageDigest for hashing
+            this.messageDigest = MessageDigest.getInstance(hashAlgorithm);
+        } else {
+            throw new IllegalArgumentException("Invalid INTEGRITY type: must be either 'HMAC' or 'HASH'");
+        }
     }
 
     public Key getEncryptionKey() {
@@ -65,6 +78,14 @@ public class Config {
 
     public Mac getMac() {
         return mac;
+    }
+
+    public MessageDigest getMessageDigest() {
+        return messageDigest;
+    }
+
+    public boolean isUseHMAC() {
+        return useHMAC;
     }
 
     public static String extractAlgorithm(String algorithm) {

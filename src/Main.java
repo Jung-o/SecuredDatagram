@@ -1,4 +1,3 @@
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class Main {
@@ -19,8 +18,8 @@ public class Main {
         DSTPSocket senderSocket;
         DSTPSocket receiverSocket;
         try {
-            senderSocket = new DSTPSocket(8888, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac());
-            receiverSocket = new DSTPSocket(8889, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac());
+            senderSocket = new DSTPSocket(8888, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac(), config.getMessageDigest(), config.isUseHMAC());
+            receiverSocket = new DSTPSocket(8889, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac(), config.getMessageDigest(), config.isUseHMAC());
         } catch (Exception ex) {
             System.err.println("Couldn't create sockets");
             System.err.println("Exception: " + ex);
