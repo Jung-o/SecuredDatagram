@@ -3,7 +3,7 @@ import java.net.InetAddress;
 public class Main {
     public static void main(String[] args) {
         String configFilename = "configuration.txt";
-        Config config = null;
+        Config config;
         try {
             // Load configuration from file
             config = new Config(configFilename);
@@ -18,8 +18,8 @@ public class Main {
         DSTPSocket senderSocket;
         DSTPSocket receiverSocket;
         try {
-            senderSocket = new DSTPSocket(8888, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac(), config.getMessageDigest(), config.isUseHMAC());
-            receiverSocket = new DSTPSocket(8889, config.getEncryptionKey(), config.getMacKey(), config.getCipher(), config.getMac(), config.getMessageDigest(), config.isUseHMAC());
+            senderSocket = new DSTPSocket(8888, config);
+            receiverSocket = new DSTPSocket(8889, config);
         } catch (Exception ex) {
             System.err.println("Couldn't create sockets");
             System.err.println("Exception: " + ex);

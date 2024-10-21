@@ -11,7 +11,14 @@ public class DSTPPacket {
     private byte[] integrityCheck;
 
     // Constructor: Encrypt and create HMAC for the payload
-    public DSTPPacket(byte[] data, Key encryptionKey, Key macKey, Cipher cipher, Mac mac, MessageDigest messageDigest, boolean useHMAC) throws Exception {
+    public DSTPPacket(byte[] data, Config config) throws Exception {
+        Key encryptionKey = config.getEncryptionKey();
+        Key macKey = config.getMacKey();
+        Cipher cipher = config.getCipher();
+        Mac mac = config.getMac();
+        MessageDigest messageDigest = config.getMessageDigest();
+        boolean useHMAC = config.isUseHMAC();
+
         // Encrypt data
         cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
         this.iv = cipher.getIV(); // Get IV if used
@@ -32,7 +39,15 @@ public class DSTPPacket {
     }
 
     // Parse a received packet to extract the encrypted payload, IV, and HMAC
-    public static byte[] decryptPacket(byte[] receivedPacket, Key encryptionKey, Key macKey, Cipher cipher, Mac mac, MessageDigest messageDigest, boolean useHMAC) throws Exception {        int ivLength = 16; // Length of IV (based on encryption algorithm)
+    public static byte[] decryptPacket(byte[] receivedPacket, Config config) throws Exception {
+        Key encryptionKey = config.getEncryptionKey();
+        Key macKey = config.getMacKey();
+        Cipher cipher = config.getCipher();
+        Mac mac = config.getMac();
+        MessageDigest messageDigest = config.getMessageDigest();
+        boolean useHMAC = config.isUseHMAC();
+
+        int ivLength = config.getIvSize();
         int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
 
         // Extract IV, payload, and HMAC

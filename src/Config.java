@@ -10,6 +10,7 @@ public class Config {
     private Key encryptionKey;
     private Key macKey;
     private Cipher cipher;
+    private int ivSize;
     private Mac mac;
     private MessageDigest messageDigest;
     private boolean useHMAC;
@@ -23,12 +24,14 @@ public class Config {
         String symmetricKeyHex = config.get("SYMMETRIC_KEY");
         int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
         String ivHex = config.get("IV");
+        int ivSize = Integer.parseInt(config.get("IV_SIZE"));
         String integrityType = config.get("INTEGRITY");
         String hashAlgorithm = config.get("H");
         String macAlgorithm = config.get("MAC");
         String macKeyHex = config.get("MACKEY");
         int macKeySize = Integer.parseInt(config.get("MACKEY_SIZE"));
 
+        this.ivSize = ivSize;
         // Initialize encryption key
         if (symmetricKeyHex.length() * 8 != symmetricKeySize) {
             throw new IllegalArgumentException("Symmetric key size does not match the provided key.");
@@ -82,6 +85,10 @@ public class Config {
 
     public MessageDigest getMessageDigest() {
         return messageDigest;
+    }
+
+    public int getIvSize(){
+        return ivSize;
     }
 
     public boolean isUseHMAC() {
