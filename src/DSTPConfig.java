@@ -13,10 +13,12 @@ public class DSTPConfig {
     private Key encryptionKey;
     private Key macKey;
     private Cipher cipher;
+    private boolean useIV;
     private int ivSize;
     private Mac mac;
     private MessageDigest messageDigest;
     private boolean useHMAC;
+    private String algorithm;
 
     public DSTPConfig(String configFilePath) throws Exception {
         // Parse the configuration file
@@ -24,6 +26,7 @@ public class DSTPConfig {
 
         // Extract configuration parameters
         String cipherAlgorithm = config.get("CONFIDENTIALITY");
+        this.algorithm = extractAlgorithm(cipherAlgorithm);
         String symmetricKeyHex = config.get("SYMMETRIC_KEY");
         int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
         String ivHex = config.get("IV");
@@ -39,14 +42,16 @@ public class DSTPConfig {
         if (symmetricKeyHex.length() * 8 != symmetricKeySize) {
             throw new IllegalArgumentException("Symmetric key size does not match the provided key.");
         }
-        this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), extractAlgorithm(cipherAlgorithm));
+        this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), algorithm);
 
         // Initialize cipher
         this.cipher = Cipher.getInstance(cipherAlgorithm);
         if (ivHex != null && !ivHex.equalsIgnoreCase("NULL")) {
             byte[] ivBytes = hexStringToByteArray(ivHex);
+            this.useIV = true;
             this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, new IvParameterSpec(ivBytes));
         } else {
+            this.useIV = false;
             this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
         }
 
@@ -94,8 +99,16 @@ public class DSTPConfig {
         return ivSize;
     }
 
-    public boolean isUseHMAC() {
+    public boolean doesUseHMAC() {
         return useHMAC;
+    }
+
+    public boolean doesUseIV(){
+        return useIV;
+    }
+
+    public String getAlgorithm(){
+        return algorithm;
     }
 
     public static String extractAlgorithm(String algorithm) {

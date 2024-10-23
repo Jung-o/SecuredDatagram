@@ -17,7 +17,7 @@ public class DSTPPacket {
         Cipher cipher = config.getCipher();
         Mac mac = config.getMac();
         MessageDigest messageDigest = config.getMessageDigest();
-        boolean useHMAC = config.isUseHMAC();
+        boolean useHMAC = config.doesUseHMAC();
 
         // Encrypt data
         cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
@@ -45,7 +45,7 @@ public class DSTPPacket {
         Cipher cipher = config.getCipher();
         Mac mac = config.getMac();
         MessageDigest messageDigest = config.getMessageDigest();
-        boolean useHMAC = config.isUseHMAC();
+        boolean useHMAC = config.doesUseHMAC();
 
         int ivLength = config.getIvSize();
         int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
@@ -68,20 +68,29 @@ public class DSTPPacket {
         }
 
         // Decrypt the payload
-        cipher.init(Cipher.DECRYPT_MODE, encryptionKey, new IvParameterSpec(iv));
+        if (config.doesUseIV()) {
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey, new IvParameterSpec(iv));
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey);
+        }
+
         return cipher.doFinal(encryptedPayload);
     }
 
     private static byte[] concatenate(byte[]... arrays) {
         int totalLength = 0;
         for (byte[] array : arrays) {
-            totalLength += array.length;
+            if (array!=null){
+                totalLength += array.length;
+            }
         }
         byte[] result = new byte[totalLength];
         int currentIndex = 0;
         for (byte[] array : arrays) {
-            System.arraycopy(array, 0, result, currentIndex, array.length);
-            currentIndex += array.length;
+            if (array!=null) {
+                System.arraycopy(array, 0, result, currentIndex, array.length);
+                currentIndex += array.length;
+            }
         }
         return result;
     }
