@@ -36,7 +36,7 @@ public class Main {
 
         // Receive and modify the packet (should fail the integrity check)
         try {
-            byte[] receivedData = receiverSocket.simulateAttack();
+            byte[] receivedData = receiverSocket.receiveAndModify();
             System.out.println("Received: " + new String(receivedData));
         } catch (Exception e) {
             System.out.println("Error: " + e);

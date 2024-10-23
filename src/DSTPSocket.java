@@ -4,8 +4,8 @@ import java.net.InetAddress;
 import java.util.Arrays;
 
 public class DSTPSocket {
-    private DatagramSocket socket;
-    private DSTPConfig config;
+    private final DatagramSocket socket;
+    private final DSTPConfig config;
 
     public DSTPSocket(int port, DSTPConfig config) throws Exception {
         this.socket = new DatagramSocket(port);
@@ -33,7 +33,7 @@ public class DSTPSocket {
     }
 
     // Simulate an attack by modifying received data
-    public byte[] simulateAttack() throws Exception {
+    public byte[] receiveAndModify() throws Exception {
         byte[] buffer = new byte[2048];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
