@@ -3,10 +3,10 @@ import java.net.InetAddress;
 public class Main {
     public static void main(String[] args) {
         String configFilename = "configuration.txt";
-        Config config;
+        DSTPConfig config;
         try {
             // Load configuration from file
-            config = new Config(configFilename);
+            config = new DSTPConfig(configFilename);
         } catch (Exception ex) {
             System.out.println("Couldn't load config from: " + configFilename + " file not found.");
             return;

@@ -2,11 +2,14 @@ import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.security.Key;
 import java.security.MessageDigest;
+import java.util.HashMap;
 import java.util.Map;
 
-public class Config {
+public class DSTPConfig {
     private Key encryptionKey;
     private Key macKey;
     private Cipher cipher;
@@ -15,9 +18,9 @@ public class Config {
     private MessageDigest messageDigest;
     private boolean useHMAC;
 
-    public Config(String configFilePath) throws Exception {
+    public DSTPConfig(String configFilePath) throws Exception {
         // Parse the configuration file
-        Map<String, String> config = ConfigParser.parseConfig(configFilePath);
+        Map<String, String> config = parseConfig(configFilePath);
 
         // Extract configuration parameters
         String cipherAlgorithm = config.get("CONFIDENTIALITY");
@@ -41,7 +44,7 @@ public class Config {
         // Initialize cipher
         this.cipher = Cipher.getInstance(cipherAlgorithm);
         if (ivHex != null && !ivHex.equalsIgnoreCase("NULL")) {
-            byte[] ivBytes = HexUtils.hexStringToByteArray(ivHex);
+            byte[] ivBytes = hexStringToByteArray(ivHex);
             this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, new IvParameterSpec(ivBytes));
         } else {
             this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
@@ -97,5 +100,32 @@ public class Config {
 
     public static String extractAlgorithm(String algorithm) {
         return algorithm.split("/")[0];
+    }
+
+    private static byte[] hexStringToByteArray(String hex) {
+        int len = hex.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(hex.charAt(i), 16) << 4)
+                    + Character.digit(hex.charAt(i + 1), 16));
+        }
+        return data;
+    }
+
+    private static Map<String, String> parseConfig(String filePath) throws Exception {
+        Map<String, String> config = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(":");
+                if (parts.length == 2) {
+                    String key = parts[0].trim();
+                    String value = parts[1].trim();
+                    config.put(key, value);
+                }
+            }
+        }
+
+        return config;
     }
 }

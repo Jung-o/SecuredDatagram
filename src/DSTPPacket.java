@@ -11,7 +11,7 @@ public class DSTPPacket {
     private byte[] integrityCheck;
 
     // Constructor: Encrypt and create HMAC for the payload
-    public DSTPPacket(byte[] data, Config config) throws Exception {
+    public DSTPPacket(byte[] data, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
         Key macKey = config.getMacKey();
         Cipher cipher = config.getCipher();
@@ -39,7 +39,7 @@ public class DSTPPacket {
     }
 
     // Parse a received packet to extract the encrypted payload, IV, and HMAC
-    public static byte[] decryptPacket(byte[] receivedPacket, Config config) throws Exception {
+    public static byte[] decryptPacket(byte[] receivedPacket, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
         Key macKey = config.getMacKey();
         Cipher cipher = config.getCipher();

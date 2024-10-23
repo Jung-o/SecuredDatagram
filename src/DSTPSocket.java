@@ -5,9 +5,9 @@ import java.util.Arrays;
 
 public class DSTPSocket {
     private DatagramSocket socket;
-    private Config config;
+    private DSTPConfig config;
 
-    public DSTPSocket(int port, Config config) throws Exception {
+    public DSTPSocket(int port, DSTPConfig config) throws Exception {
         this.socket = new DatagramSocket(port);
         this.config = config;
     }
