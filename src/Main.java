@@ -7,8 +7,9 @@ public class Main {
         try {
             // Load configuration from file
             config = new DSTPConfig(configFilename);
-        } catch (Exception ex) {
-            System.out.println("Couldn't load config from: " + configFilename + " file not found.");
+        } catch (Exception e) {
+            System.err.println(e);
+            e.printStackTrace();
             return;
         }
 
@@ -30,6 +31,7 @@ public class Main {
         } catch (Exception ex) {
             System.out.println("Couldn't send message");
             System.out.println("Exception: " + ex);
+            return;
         }
 
         // Receive and modify the packet (should fail the integrity check)
@@ -54,13 +56,14 @@ public class Main {
         } catch (Exception ex) {
             System.out.println("Couldn't send message");
             System.out.println("Exception: " + ex);
+            return;
         }
 
         try {
             byte[] receivedData = receiverSocket.receive();
             System.out.println("Received: " + new String(receivedData));
         } catch (Exception ex) {
-            System.out.println("Error when receiving the message message");
+            System.out.println("Error when receiving the message");
             System.out.println("Exception: " + ex);
         }
 
