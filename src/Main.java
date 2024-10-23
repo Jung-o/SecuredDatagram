@@ -8,9 +8,7 @@ public class Main {
             // Load configuration from file
             config = new Config(configFilename);
         } catch (Exception ex) {
-            System.err.println("Couldn't load config from: " + configFilename);
-            System.err.println("Exception: " + ex);
-            ex.printStackTrace();
+            System.out.println("Couldn't load config from: " + configFilename + " file not found.");
             return;
         }
 
@@ -21,8 +19,8 @@ public class Main {
             senderSocket = new DSTPSocket(8888, config);
             receiverSocket = new DSTPSocket(8889, config);
         } catch (Exception ex) {
-            System.err.println("Couldn't create sockets");
-            System.err.println("Exception: " + ex);
+            System.out.println("Couldn't create sockets");
+            System.out.println("Exception: " + ex);
             return;
         }
         // Send secure data
@@ -30,11 +28,8 @@ public class Main {
         try {
             senderSocket.send(message.getBytes(), InetAddress.getByName("localhost"), 8889);
         } catch (Exception ex) {
-            System.err.println("Couldn't send message");
-            System.err.println("Exception: " + ex);
-            senderSocket.close();
-            receiverSocket.close();
-            return;
+            System.out.println("Couldn't send message");
+            System.out.println("Exception: " + ex);
         }
 
         // Receive and modify the packet (should fail the integrity check)
@@ -57,22 +52,16 @@ public class Main {
         try {
             senderSocket.send(longMessage.getBytes(), InetAddress.getByName("localhost"), 8889);
         } catch (Exception ex) {
-            System.err.println("Couldn't send message");
-            System.err.println("Exception: " + ex);
-            senderSocket.close();
-            receiverSocket.close();
-            return;
+            System.out.println("Couldn't send message");
+            System.out.println("Exception: " + ex);
         }
 
         try {
             byte[] receivedData = receiverSocket.receive();
             System.out.println("Received: " + new String(receivedData));
         } catch (Exception ex) {
-            System.err.println("Error when receiving the message message");
-            System.err.println("Exception: " + ex);
-            senderSocket.close();
-            receiverSocket.close();
-            return;
+            System.out.println("Error when receiving the message message");
+            System.out.println("Exception: " + ex);
         }
 
 
