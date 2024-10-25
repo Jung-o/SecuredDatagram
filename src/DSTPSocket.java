@@ -15,10 +15,10 @@ public class DSTPSocket {
     // Send encrypted packet
     public void send(byte[] data, InetAddress address, int port) throws Exception {
         DSTPPacket packet = new DSTPPacket(data, config);
-        byte[] secureData = packet.toBytes();
+        byte[] securePayload = packet.getPayload();
 
         // Create a DatagramPacket and send
-        DatagramPacket datagramPacket = new DatagramPacket(secureData, secureData.length, address, port);
+        DatagramPacket datagramPacket = new DatagramPacket(securePayload, securePayload.length, address, port);
         socket.send(datagramPacket);
     }
 

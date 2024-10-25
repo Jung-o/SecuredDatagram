@@ -12,48 +12,52 @@ import java.util.Map;
 public class DSTPConfig {
     private final Key encryptionKey;
     private Key macKey;
-    private final Cipher cipher;
     private final boolean useIV;
     private final int ivSize;
+    private final byte[] iv;
     private Mac mac;
     private MessageDigest messageDigest;
     private final boolean useHMAC;
+    private final String cipherAlgorithm;
     private final String algorithm;
 
     public DSTPConfig(String configFilePath) throws Exception {
+        byte[] ivParsed;
+        boolean useIVParsed;
+        int ivSizeParsed;
         // Parse the configuration file
         Map<String, String> config = parseConfig(configFilePath);
 
         // Extract configuration parameters
-        String cipherAlgorithm = config.get("CONFIDENTIALITY");
+        this.cipherAlgorithm = config.get("CONFIDENTIALITY");
         this.algorithm = extractAlgorithm(cipherAlgorithm);
         String symmetricKeyHex = config.get("SYMMETRIC_KEY");
         int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
-        String ivHex = config.get("IV");
-        int ivSize = Integer.parseInt(config.get("IV_SIZE"));
+
+        try {
+            ivSizeParsed = Integer.parseInt(config.get("IV_SIZE"));
+            useIVParsed = true;
+            ivParsed = hexStringToByteArray(config.get("IV"));
+        } catch (NumberFormatException e){
+            ivSizeParsed = 0;
+            useIVParsed = false;
+            ivParsed = "NULL".getBytes();
+        }
+        this.iv = ivParsed;
+        this.useIV = useIVParsed;
+        this.ivSize = ivSizeParsed;
         String integrityType = config.get("INTEGRITY");
         String hashAlgorithm = config.get("H");
         String macAlgorithm = config.get("MAC");
         String macKeyHex = config.get("MACKEY");
         int macKeySize = Integer.parseInt(config.get("MACKEY_SIZE"));
 
-        this.ivSize = ivSize;
         // Initialize encryption key
         if (symmetricKeyHex.length() * 8 != symmetricKeySize) {
             throw new IllegalArgumentException("Symmetric key size does not match the provided key.");
         }
         this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), algorithm);
 
-        // Initialize cipher
-        this.cipher = Cipher.getInstance(cipherAlgorithm);
-        if (ivHex != null && !ivHex.equalsIgnoreCase("NULL")) {
-            byte[] ivBytes = hexStringToByteArray(ivHex);
-            this.useIV = true;
-            this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, new IvParameterSpec(ivBytes));
-        } else {
-            this.useIV = false;
-            this.cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
-        }
 
         if ("HMAC".equalsIgnoreCase(integrityType)) {
             this.useHMAC = true;
@@ -83,8 +87,8 @@ public class DSTPConfig {
         return macKey;
     }
 
-    public Cipher getCipher() {
-        return cipher;
+    public String getCipher() {
+        return cipherAlgorithm;
     }
 
     public Mac getMac() {
@@ -95,20 +99,12 @@ public class DSTPConfig {
         return messageDigest;
     }
 
-    public int getIvSize(){
-        return ivSize;
-    }
-
     public boolean doesUseHMAC() {
         return useHMAC;
     }
 
     public boolean doesUseIV(){
         return useIV;
-    }
-
-    public String getAlgorithm(){
-        return algorithm;
     }
 
     public static String extractAlgorithm(String algorithm) {
@@ -140,5 +136,9 @@ public class DSTPConfig {
         }
 
         return config;
+    }
+
+    public byte[] getIv() {
+        return iv;
     }
 }

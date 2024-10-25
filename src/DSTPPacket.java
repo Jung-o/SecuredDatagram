@@ -7,87 +7,95 @@ import java.util.Arrays;
 
 public class DSTPPacket {
     private byte[] payload;
-    private byte[] iv;
-    private byte[] integrityCheck;
 
-    // Constructor: Encrypt and create HMAC for the payload
     public DSTPPacket(byte[] data, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
         Key macKey = config.getMacKey();
-        Cipher cipher = config.getCipher();
+        Cipher cipher = Cipher.getInstance(config.getCipher());
         Mac mac = config.getMac();
         MessageDigest messageDigest = config.getMessageDigest();
         boolean useHMAC = config.doesUseHMAC();
-
-        // Encrypt data
-        cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
-        this.iv = cipher.getIV(); // Get IV if used
-        this.payload = cipher.doFinal(data);
 
         // Generate HMAC or Hash for integrity
+        byte[] integrityCheck;
         if (useHMAC) {
             mac.init(macKey);
-            this.integrityCheck = mac.doFinal(concatenate(iv, payload));
+            integrityCheck = mac.doFinal(data);
         } else {
-            this.integrityCheck = messageDigest.digest(concatenate(iv, payload));
+            integrityCheck = messageDigest.digest(data);
         }
+
+        // Concatenate data with integrity check
+        byte[] dataWithIntegrity = concatenate(data, integrityCheck);
+
+        // Initialize cipher
+        if (config.doesUseIV()) {
+            byte[] ivBytes = config.getIv();
+            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey, new IvParameterSpec(ivBytes));
+        } else {
+            cipher.init(Cipher.ENCRYPT_MODE, encryptionKey);
+        }
+
+        // Encrypt concatenated data
+        this.payload = cipher.doFinal(dataWithIntegrity);
     }
 
-    // Combine IV, encrypted payload, and HMAC into a single byte array
-    public byte[] toBytes() {
-        return concatenate(iv, payload, integrityCheck);
+    // Combine IV and encrypted payload into a single byte array
+    public byte[] getPayload() {
+        return payload;
     }
 
-    // Parse a received packet to extract the encrypted payload, IV, and HMAC
+    // Parse a received packet to extract the encrypted payload and IV
     public static byte[] decryptPacket(byte[] receivedPacket, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
-        Key macKey = config.getMacKey();
-        Cipher cipher = config.getCipher();
+        Cipher cipher = Cipher.getInstance(config.getCipher());
         Mac mac = config.getMac();
         MessageDigest messageDigest = config.getMessageDigest();
         boolean useHMAC = config.doesUseHMAC();
 
-        int ivLength = config.getIvSize();
-        int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
+        // Extract IV and encrypted payload
+        byte[] encryptedPayload = Arrays.copyOfRange(receivedPacket, 0, receivedPacket.length);
 
-        // Extract IV, payload, and HMAC
-        byte[] iv = Arrays.copyOfRange(receivedPacket, 0, ivLength);
-        byte[] encryptedPayload = Arrays.copyOfRange(receivedPacket, ivLength, receivedPacket.length - integrityLength);
-        byte[] receivedIntegrityCheck = Arrays.copyOfRange(receivedPacket, receivedPacket.length - integrityLength, receivedPacket.length);
+        // Decrypt the payload
+        if (config.doesUseIV()) {
+            byte[] ivBytes = config.getIv();
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey, new IvParameterSpec(ivBytes));
+        } else {
+            cipher.init(Cipher.DECRYPT_MODE, encryptionKey);
+        }
+        byte[] decryptedDataWithIntegrity = cipher.doFinal(encryptedPayload);
+
+        // Separate data and integrity check
+        int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
+        byte[] data = Arrays.copyOfRange(decryptedDataWithIntegrity, 0, decryptedDataWithIntegrity.length - integrityLength);
+        byte[] receivedIntegrityCheck = Arrays.copyOfRange(decryptedDataWithIntegrity, decryptedDataWithIntegrity.length - integrityLength, decryptedDataWithIntegrity.length);
 
         // Verify integrity
         byte[] calculatedIntegrity;
         if (useHMAC) {
-            mac.init(macKey);
-            calculatedIntegrity = mac.doFinal(concatenate(iv, encryptedPayload));
+            mac.init(config.getMacKey());
+            calculatedIntegrity = mac.doFinal(data);
         } else {
-            calculatedIntegrity = messageDigest.digest(concatenate(iv, encryptedPayload));
+            calculatedIntegrity = messageDigest.digest(data);
         }
         if (!Arrays.equals(receivedIntegrityCheck, calculatedIntegrity)) {
             throw new SecurityException("Packet integrity check failed");
         }
 
-        // Decrypt the payload
-        if (config.doesUseIV()) {
-            cipher.init(Cipher.DECRYPT_MODE, encryptionKey, new IvParameterSpec(iv));
-        } else {
-            cipher.init(Cipher.DECRYPT_MODE, encryptionKey);
-        }
-
-        return cipher.doFinal(encryptedPayload);
+        return data;
     }
 
     private static byte[] concatenate(byte[]... arrays) {
         int totalLength = 0;
         for (byte[] array : arrays) {
-            if (array!=null){
+            if (array != null) {
                 totalLength += array.length;
             }
         }
         byte[] result = new byte[totalLength];
         int currentIndex = 0;
         for (byte[] array : arrays) {
-            if (array!=null) {
+            if (array != null) {
                 System.arraycopy(array, 0, result, currentIndex, array.length);
                 currentIndex += array.length;
             }
