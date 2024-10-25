@@ -34,6 +34,7 @@ public class DSTPSocket {
 
     // Simulate an attack by modifying received data
     public byte[] receiveAndModify() throws Exception {
+        System.out.println("Simulating receive and modify attack by a middleman.");
         byte[] buffer = new byte[2048];
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
