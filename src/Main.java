@@ -42,7 +42,7 @@ public class Main {
             System.out.println("Error: " + e);
         }
 
-        System.out.println("\n\nSending a message longer than the block size.");
+        System.out.println("\n\nSending a long message.");
         String longMessage = """
                 Uma vez, quando tinha seis anos, vi uma gravura magnífica num livro sobre a floresta virgem que se\s
                 chamava Histо́rias Vividas. Era a imagem de uma jiboia a engolir uma fera. Aqui está a cо́pia do\s

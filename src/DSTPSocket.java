@@ -24,7 +24,7 @@ public class DSTPSocket {
 
     // Receive and decrypt packet
     public byte[] receive() throws Exception {
-        byte[] buffer = new byte[2048]; // Ensure buffer is large enough
+        byte[] buffer = new byte[4096]; // Ensure buffer is large enough
         DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
         socket.receive(packet);
 
