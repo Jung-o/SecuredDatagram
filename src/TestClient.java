@@ -1,8 +1,8 @@
 import java.net.InetAddress;
 
-public class Main {
+public class TestClient {
     public static void main(String[] args) {
-        String configFilename = "configuration.txt";
+        String configFilename = "build/configuration.txt";
         DSTPConfig config;
         try {
             // Load configuration from file
@@ -14,11 +14,9 @@ public class Main {
         }
 
         // Create secure sockets using configuration
-        DSTPSocket senderSocket;
-        DSTPSocket receiverSocket;
+        DSTPSocket socket;
         try {
-            senderSocket = new DSTPSocket(8888, config);
-            receiverSocket = new DSTPSocket(8889, config);
+            socket = new DSTPSocket(8888, config);
         } catch (Exception ex) {
             System.out.println("Couldn't create sockets");
             System.out.println("Exception: " + ex);
@@ -27,19 +25,11 @@ public class Main {
         // Send secure data
         String message = "This is a secure message!";
         try {
-            senderSocket.send(message.getBytes(), InetAddress.getByName("localhost"), 8889);
+            socket.sendAndModify(message.getBytes(), InetAddress.getByName("localhost"), 8889);
         } catch (Exception ex) {
             System.out.println("Couldn't send message");
             System.out.println("Exception: " + ex);
             return;
-        }
-
-        // Receive and modify the packet (should fail the integrity check)
-        try {
-            byte[] receivedData = receiverSocket.receiveAndModify();
-            System.out.println("Received: " + new String(receivedData));
-        } catch (Exception e) {
-            System.out.println("Error: " + e);
         }
 
         System.out.println("\n\nSending a long message.");
@@ -52,23 +42,12 @@ public class Main {
                 número 1 era assim:""";
 
         try {
-            senderSocket.send(longMessage.getBytes(), InetAddress.getByName("localhost"), 8889);
+            socket.send(longMessage.getBytes(), InetAddress.getByName("localhost"), 8889);
         } catch (Exception ex) {
             System.out.println("Couldn't send message");
             System.out.println("Exception: " + ex);
             return;
         }
-
-        try {
-            byte[] receivedData = receiverSocket.receive();
-            System.out.println("Received: " + new String(receivedData));
-        } catch (Exception ex) {
-            System.out.println("Error when receiving the message");
-            System.out.println("Exception: " + ex);
-        }
-
-
-        senderSocket.close();
-        receiverSocket.close();
+        socket.close();
     }
 }

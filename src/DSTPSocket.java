@@ -29,49 +29,49 @@ public class DSTPSocket {
         socket.send(datagramPacket);
     }
 
-    // Receive and decrypt packet
-    public byte[] receive() throws Exception {
-        byte[] buffer = new byte[4096]; // Ensure buffer is large enough
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        socket.receive(packet);
+    // Receive and decrypt packet, discarding invalid packets
+    public byte[] receive() {
+        while (true) {
+            byte[] buffer = new byte[4096]; // Ensure buffer is large enough
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
-        byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
-        byte[] decryptedDataWithSequence = DSTPPacket.decryptPacket(receivedData, config);
+            try {
+                socket.receive(packet);
 
-        // Extract sequence number
-        int sequenceNumber = ByteBuffer.wrap(Arrays.copyOfRange(decryptedDataWithSequence, 0, 2)).getShort();
-        // Check for duplicate sequence number
-        if (receivedSequenceNumbers.contains(sequenceNumber)) {
-            throw new SecurityException("Duplicate sequence number received: " + sequenceNumber);
+                byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
+                byte[] decryptedDataWithSequence = DSTPPacket.decryptPacket(receivedData, config);
+
+                // Extract sequence number
+                int sequenceNumber = ByteBuffer.wrap(Arrays.copyOfRange(decryptedDataWithSequence, 0, 2)).getShort();
+                // Check for duplicate sequence number
+                if (receivedSequenceNumbers.contains(sequenceNumber)) {
+                    throw new SecurityException("Duplicate sequence number received: " + sequenceNumber);
+                }
+
+                // Store the received sequence number
+                receivedSequenceNumbers.add(sequenceNumber);
+
+                return Arrays.copyOfRange(decryptedDataWithSequence, 2, decryptedDataWithSequence.length);
+            } catch (Exception _) {
+            }
         }
-
-        // Store the received sequence number
-        receivedSequenceNumbers.add(sequenceNumber);
-
-        return Arrays.copyOfRange(decryptedDataWithSequence, 2, decryptedDataWithSequence.length);
     }
 
-    public byte[] receiveAndModify() throws Exception {
-        System.out.println("Simulating receive and modify attack by a middleman.");
-        byte[] buffer = new byte[2048];
-        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-        socket.receive(packet);
+    public void sendAndModify(byte[] data, InetAddress address, int port) throws Exception {
+        System.out.println("Simulating modify attack by a middleman.");
 
-        byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
-        byte[] surroundOriginalArray = Arrays.copyOfRange(receivedData, 18, 22);
-        System.out.println("Original Received Data (cut to only show the changes) : " + Arrays.toString(surroundOriginalArray));
+        DSTPPacket packet = new DSTPPacket(data, sequenceNumber++, config); // increments sequenceNumber after sending
+        byte[] securePayload = packet.getPayload();
 
         // Simulate modification by flipping some bits in the payload
-        receivedData[18] = (byte) (receivedData[8] ^ 0xFF);
-        receivedData[19] = (byte) (receivedData[9] ^ 0xFF);
-        receivedData[20] = (byte) (receivedData[10] ^ 0xFF);
-        receivedData[21] = (byte) (receivedData[11] ^ 0xFF);
+        securePayload[18] = (byte) (securePayload[18] ^ 0xFF);
+        securePayload[19] = (byte) (securePayload[19] ^ 0xFF);
+        securePayload[20] = (byte) (securePayload[20] ^ 0xFF);
+        securePayload[21] = (byte) (securePayload[21] ^ 0xFF);
 
-        byte[] surroundingModifiedArray = Arrays.copyOfRange(receivedData, 18, 22);
-        System.out.println("Tampered Data (cut to only show the changes) : " + Arrays.toString(surroundingModifiedArray));
-
-        // Try to decrypt the modified data (should fail integrity check)
-        return DSTPPacket.decryptPacket(receivedData, config);
+        // Create a DatagramPacket and send
+        DatagramPacket datagramPacket = new DatagramPacket(securePayload, securePayload.length, address, port);
+        socket.send(datagramPacket);
     }
 
 
