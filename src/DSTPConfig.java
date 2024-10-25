@@ -10,15 +10,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DSTPConfig {
-    private Key encryptionKey;
+    private final Key encryptionKey;
     private Key macKey;
-    private Cipher cipher;
-    private boolean useIV;
-    private int ivSize;
+    private final Cipher cipher;
+    private final boolean useIV;
+    private final int ivSize;
     private Mac mac;
     private MessageDigest messageDigest;
-    private boolean useHMAC;
-    private String algorithm;
+    private final boolean useHMAC;
+    private final String algorithm;
 
     public DSTPConfig(String configFilePath) throws Exception {
         // Parse the configuration file
