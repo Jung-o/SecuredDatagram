@@ -1,14 +1,15 @@
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.IvParameterSpec;
+import java.nio.ByteBuffer;
 import java.security.Key;
 import java.security.MessageDigest;
 import java.util.Arrays;
 
 public class DSTPPacket {
-    private byte[] payload;
+    private final byte[] payload;
 
-    public DSTPPacket(byte[] data, DSTPConfig config) throws Exception {
+    public DSTPPacket(byte[] data, int sequenceNumber, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
         Key macKey = config.getMacKey();
         Cipher cipher = Cipher.getInstance(config.getCipher());
@@ -16,17 +17,22 @@ public class DSTPPacket {
         MessageDigest messageDigest = config.getMessageDigest();
         boolean useHMAC = config.doesUseHMAC();
 
+        // Convert sequence number to byte array
+        byte[] sequenceNumberBytes = ByteBuffer.allocate(2).putShort((short) sequenceNumber).array();
+
+        // Concatenate sequence number with data
+        byte[] dataWithSequence = concatenate(sequenceNumberBytes, data);
         // Generate HMAC or Hash for integrity
         byte[] integrityCheck;
         if (useHMAC) {
             mac.init(macKey);
-            integrityCheck = mac.doFinal(data);
+            integrityCheck = mac.doFinal(dataWithSequence);
         } else {
-            integrityCheck = messageDigest.digest(data);
+            integrityCheck = messageDigest.digest(dataWithSequence);
         }
 
         // Concatenate data with integrity check
-        byte[] dataWithIntegrity = concatenate(data, integrityCheck);
+        byte[] dataWithIntegrity = concatenate(dataWithSequence, integrityCheck);
 
         // Initialize cipher
         if (config.doesUseIV()) {
@@ -67,22 +73,23 @@ public class DSTPPacket {
 
         // Separate data and integrity check
         int integrityLength = useHMAC ? mac.getMacLength() : messageDigest.getDigestLength();
-        byte[] data = Arrays.copyOfRange(decryptedDataWithIntegrity, 0, decryptedDataWithIntegrity.length - integrityLength);
+        byte[] dataWithSequence = Arrays.copyOfRange(decryptedDataWithIntegrity, 0, decryptedDataWithIntegrity.length - integrityLength);
         byte[] receivedIntegrityCheck = Arrays.copyOfRange(decryptedDataWithIntegrity, decryptedDataWithIntegrity.length - integrityLength, decryptedDataWithIntegrity.length);
 
         // Verify integrity
         byte[] calculatedIntegrity;
         if (useHMAC) {
             mac.init(config.getMacKey());
-            calculatedIntegrity = mac.doFinal(data);
+            calculatedIntegrity = mac.doFinal(dataWithSequence);
         } else {
-            calculatedIntegrity = messageDigest.digest(data);
+            calculatedIntegrity = messageDigest.digest(dataWithSequence);
         }
         if (!Arrays.equals(receivedIntegrityCheck, calculatedIntegrity)) {
             throw new SecurityException("Packet integrity check failed");
         }
 
-        return data;
+        // Return data and sequence number
+        return dataWithSequence;
     }
 
     private static byte[] concatenate(byte[]... arrays) {
