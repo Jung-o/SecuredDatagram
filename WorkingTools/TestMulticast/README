@@ -1,3 +1,19 @@
+Changes made to the original application:
+
+Mulitcast Sender:
+-------------------------------
+- Created new variable for the config and loaded it from the file (using the DSTPConfig class)
+- Created new variable for the DSTP Socket from the original MulticastSocket
+- Changed the sockets that sent the messages from the MulticastOne to the DSTP one.
+
+Mulitcast Receiver:
+-------------------------------
+- Created new variable for the config and loaded it from the file (using the DSTPConfig class)
+- Created new variable for the DSTP Socket from the original MulticastSocket
+- Changed the sockets that received the messages from the MulticastOne to the DSTP one.
+
+
+
 // SRSC 1718
 
 Correr simplesmente ...
