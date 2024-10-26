@@ -48,7 +48,7 @@ public class MulticastSender {
 
     } while( more >0 ) ;
     msg="fim!";
-    ms.send( new DatagramPacket( msg.getBytes(), msg.getBytes().length, group, port ) ) ;
+        safeSendingSocket.send( msg.getBytes(), group, port ) ;
     ms.close();
 	    
     }
