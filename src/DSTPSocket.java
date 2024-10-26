@@ -40,6 +40,7 @@ public class DSTPSocket {
     public byte[] receive(DatagramPacket packet) {
         while (true) {
             try {
+                packet.setData(new byte[65536], 0, 65536);
                 socket.receive(packet);
 
                 byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
