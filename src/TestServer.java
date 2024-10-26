@@ -1,3 +1,5 @@
+import java.net.DatagramPacket;
+
 public class TestServer {
     public static void main(String[] args) {
         String configFilename = "configuration.txt";
@@ -22,7 +24,9 @@ public class TestServer {
         }
 
         while (true){
-            byte[] receivedData = socket.receive();
+            byte[] buffer = new byte[65536]; // Ensure buffer is large enough
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+            byte[] receivedData = socket.receive(packet);
             System.out.println("Received: " + new String(receivedData));
         }
 

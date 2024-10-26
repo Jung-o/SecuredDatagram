@@ -19,6 +19,13 @@ public class DSTPSocket {
         this.receivedSequenceNumbers = new HashSet<>();
     }
 
+    public DSTPSocket(DatagramSocket socket, DSTPConfig config) {
+        this.socket = socket;
+        this.config = config;
+        this.sequenceNumber = 0;
+        this.receivedSequenceNumbers = new HashSet<>();
+    }
+
     // Send encrypted packet
     public void send(byte[] data, InetAddress address, int port) throws Exception {
         DSTPPacket packet = new DSTPPacket(data, sequenceNumber++, config); // increments sequenceNumber after sending
@@ -30,16 +37,12 @@ public class DSTPSocket {
     }
 
     // Receive and decrypt packet, discarding invalid packets
-    public byte[] receive() {
+    public byte[] receive(DatagramPacket packet) {
         while (true) {
-            byte[] buffer = new byte[4096]; // Ensure buffer is large enough
-            DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-
             try {
                 socket.receive(packet);
 
                 byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
-
                 // Extract version number, release number, and payload size
                 int versionNumber = ByteBuffer.wrap(Arrays.copyOfRange(receivedData, 0, 2)).getShort();
                 int releaseNumber = ByteBuffer.wrap(Arrays.copyOfRange(receivedData, 2, 3)).get();
@@ -68,7 +71,10 @@ public class DSTPSocket {
                 // Store the received sequence number
                 receivedSequenceNumbers.add(sequenceNumber);
 
-                return Arrays.copyOfRange(decryptedDataWithSequence, 2, decryptedDataWithSequence.length);
+                byte[] decryptedValidData = Arrays.copyOfRange(decryptedDataWithSequence, 2, decryptedDataWithSequence.length);
+                packet.setData(decryptedValidData);
+
+                return decryptedValidData;
             } catch (Exception e) {
                 System.err.println("Discarding invalid packet: " + e.getMessage());
             }
@@ -78,5 +84,17 @@ public class DSTPSocket {
     // Close the socket
     public void close() {
         socket.close();
+    }
+
+    public DatagramPacket sendableDatagramPacket(byte[] data, InetAddress address, int port){
+        try {
+            DSTPPacket packet = new DSTPPacket(data, sequenceNumber++, config);
+            byte[] securePayload = packet.getPayload();
+
+            // Create a DatagramPacket and send
+            return new DatagramPacket(securePayload, securePayload.length, address, port);
+        }
+        catch (Exception _) { }
+        return null;
     }
 }
