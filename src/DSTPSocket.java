@@ -39,7 +39,24 @@ public class DSTPSocket {
                 socket.receive(packet);
 
                 byte[] receivedData = Arrays.copyOfRange(packet.getData(), 0, packet.getLength());
-                byte[] decryptedDataWithSequence = DSTPPacket.decryptPacket(receivedData, config);
+
+                // Extract version number, release number, and payload size
+                int versionNumber = ByteBuffer.wrap(Arrays.copyOfRange(receivedData, 0, 2)).getShort();
+                int releaseNumber = ByteBuffer.wrap(Arrays.copyOfRange(receivedData, 2, 3)).get();
+                int payloadSize = ByteBuffer.wrap(Arrays.copyOfRange(receivedData, 3, 5)).getShort();
+
+                // Check if version number and release number match the config
+                if (versionNumber != config.getVersion() || releaseNumber != config.getRelease()) {
+                    throw new SecurityException("Version or release number mismatch");
+                }
+
+                // Check if the payload size matches the actual size of the encrypted payload
+                byte[] encryptedPayload = Arrays.copyOfRange(receivedData, 5, receivedData.length);
+                if (payloadSize != encryptedPayload.length) {
+                    throw new SecurityException("Payload size mismatch");
+                }
+
+                byte[] decryptedDataWithSequence = DSTPPacket.decryptPacket(encryptedPayload, config);
 
                 // Extract sequence number
                 int sequenceNumber = ByteBuffer.wrap(Arrays.copyOfRange(decryptedDataWithSequence, 0, 2)).getShort();
@@ -52,28 +69,11 @@ public class DSTPSocket {
                 receivedSequenceNumbers.add(sequenceNumber);
 
                 return Arrays.copyOfRange(decryptedDataWithSequence, 2, decryptedDataWithSequence.length);
-            } catch (Exception _) {
+            } catch (Exception e) {
+                System.err.println("Discarding invalid packet: " + e.getMessage());
             }
         }
     }
-
-    public void sendAndModify(byte[] data, InetAddress address, int port) throws Exception {
-        System.out.println("Simulating modify attack by a middleman.");
-
-        DSTPPacket packet = new DSTPPacket(data, sequenceNumber++, config); // increments sequenceNumber after sending
-        byte[] securePayload = packet.getPayload();
-
-        // Simulate modification by flipping some bits in the payload
-        securePayload[18] = (byte) (securePayload[18] ^ 0xFF);
-        securePayload[19] = (byte) (securePayload[19] ^ 0xFF);
-        securePayload[20] = (byte) (securePayload[20] ^ 0xFF);
-        securePayload[21] = (byte) (securePayload[21] ^ 0xFF);
-
-        // Create a DatagramPacket and send
-        DatagramPacket datagramPacket = new DatagramPacket(securePayload, securePayload.length, address, port);
-        socket.send(datagramPacket);
-    }
-
 
     // Close the socket
     public void close() {

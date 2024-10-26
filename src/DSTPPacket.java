@@ -43,7 +43,15 @@ public class DSTPPacket {
         }
 
         // Encrypt concatenated data
-        this.payload = cipher.doFinal(dataWithIntegrity);
+        byte[] encryptedData = cipher.doFinal(dataWithIntegrity);
+
+        // Add version number, release number, and size of encrypted payload
+        byte[] versionNumber = ByteBuffer.allocate(2).putShort((short) config.getVersion()).array();
+        byte[] releaseNumber = ByteBuffer.allocate(1).put((byte) config.getRelease()).array();
+        byte[] payloadSize = ByteBuffer.allocate(2).putShort((short) encryptedData.length).array();
+
+        // Concatenate version number, release number, payload size, and encrypted data
+        this.payload = concatenate(versionNumber, releaseNumber, payloadSize, encryptedData);
     }
 
     // Combine IV and encrypted payload into a single byte array
@@ -52,15 +60,12 @@ public class DSTPPacket {
     }
 
     // Parse a received packet to extract the encrypted payload and IV
-    public static byte[] decryptPacket(byte[] receivedPacket, DSTPConfig config) throws Exception {
+    public static byte[] decryptPacket(byte[] encryptedPayload, DSTPConfig config) throws Exception {
         Key encryptionKey = config.getEncryptionKey();
         Cipher cipher = Cipher.getInstance(config.getCipher());
         Mac mac = config.getMac();
         MessageDigest messageDigest = config.getMessageDigest();
         boolean useHMAC = config.doesUseHMAC();
-
-        // Extract IV and encrypted payload
-        byte[] encryptedPayload = Arrays.copyOfRange(receivedPacket, 0, receivedPacket.length);
 
         // Decrypt the payload
         if (config.doesUseIV()) {

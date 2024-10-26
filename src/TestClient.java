@@ -2,7 +2,7 @@ import java.net.InetAddress;
 
 public class TestClient {
     public static void main(String[] args) {
-        String configFilename = "build/configuration.txt";
+        String configFilename = "configuration.txt";
         DSTPConfig config;
         try {
             // Load configuration from file
@@ -23,16 +23,17 @@ public class TestClient {
             return;
         }
         // Send secure data
+        System.out.println("Sending a short message.");
         String message = "This is a secure message!";
         try {
-            socket.sendAndModify(message.getBytes(), InetAddress.getByName("localhost"), 8889);
+            socket.send(message.getBytes(), InetAddress.getByName("localhost"), 8889);
         } catch (Exception ex) {
             System.out.println("Couldn't send message");
             System.out.println("Exception: " + ex);
             return;
         }
 
-        System.out.println("\n\nSending a long message.");
+        System.out.println("Sending a long message.");
         String longMessage = """
                 Uma vez, quando tinha seis anos, vi uma gravura magnífica num livro sobre a floresta virgem que se\s
                 chamava Histо́rias Vividas. Era a imagem de uma jiboia a engolir uma fera. Aqui está a cо́pia do\s

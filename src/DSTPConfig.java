@@ -20,8 +20,12 @@ public class DSTPConfig {
     private final boolean useHMAC;
     private final String cipherAlgorithm;
     private final String algorithm;
+    private final int version;
+    private final int release;
 
     public DSTPConfig(String configFilePath) throws Exception {
+        this.version = 1;
+        this.release = 1;
         byte[] ivParsed;
         boolean useIVParsed;
         int ivSizeParsed;
@@ -140,5 +144,13 @@ public class DSTPConfig {
 
     public byte[] getIv() {
         return iv;
+    }
+
+    public int getVersion() {
+        return version;
+    }
+
+    public int getRelease() {
+        return release;
     }
 }

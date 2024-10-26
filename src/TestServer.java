@@ -1,6 +1,6 @@
 public class TestServer {
     public static void main(String[] args) {
-        String configFilename = "build/configuration.txt";
+        String configFilename = "configuration.txt";
         DSTPConfig config;
         try {
             // Load configuration from file
