@@ -82,6 +82,11 @@ public class DSTPSocket {
         }
     }
 
+    public byte[] receive(){
+        DatagramPacket packet = new DatagramPacket(new byte[65536], 65536);
+        return receive(packet);
+    }
+
     // Close the socket
     public void close() {
         socket.close();
