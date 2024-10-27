@@ -43,7 +43,7 @@ class hjStreamServer {
 			dstpSocket = new DSTPSocket(ms, config);
 		}
 		else{
-			DatagramSocket s = new DatagramSocket(addr);
+			DatagramSocket s = new DatagramSocket();
 			dstpSocket = new DSTPSocket(s, config);
 		}
 
