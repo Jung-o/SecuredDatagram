@@ -23,6 +23,7 @@ public class TestServer {
             return;
         }
 
+	System.out.println("Waiting to receive messages...");
         while (true){
             byte[] buffer = new byte[65536]; // Ensure buffer is large enough
             DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
