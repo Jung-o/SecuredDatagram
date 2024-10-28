@@ -15,6 +15,8 @@ class TFTPserverWRQ extends Thread {
 	//protected int testloss=0;
 	protected File saveFile;
 	protected String fileName;
+	protected DSTPConfig config;
+	protected DSTPSocket safeSock;
 
 	// Initialize read request
 	public TFTPserverWRQ(TFTPwrite request) throws TftpException {
@@ -22,6 +24,8 @@ class TFTPserverWRQ extends Thread {
 			req = request;
 			sock = new DatagramSocket(); // new port for transfer
 			sock.setSoTimeout(1000);
+			config = new DSTPConfig("configuration.txt");
+			safeSock = new DSTPSocket(sock, config);
 
 			host = request.getAddress();
 			port = request.getPort();
@@ -32,7 +36,7 @@ class TFTPserverWRQ extends Thread {
 			if (!saveFile.exists()) {
 				outFile = new FileOutputStream(saveFile);
 				TFTPack a = new TFTPack(0);
-				a.send(host, port, sock); // send ack 0 at first, ready to
+				a.send(host, port, safeSock); // send ack 0 at first, ready to
 											// receive
 				this.start();
 			} else
@@ -41,7 +45,7 @@ class TFTPserverWRQ extends Thread {
 		} catch (Exception e) {
 			TFTPerror ePak = new TFTPerror(1, e.getMessage()); // error code 1
 			try {
-				ePak.send(host, port, sock);
+				ePak.send(host, port, safeSock);
 			} catch (Exception f) {
 			}
 
@@ -57,7 +61,7 @@ class TFTPserverWRQ extends Thread {
 				for (int blkNum = 1, bytesOut = 512; bytesOut == 512; blkNum++) {
 					while (timeoutLimit != 0) {
 						try {
-							TFTPpacket inPak = TFTPpacket.receive(sock); 
+							TFTPpacket inPak = TFTPpacket.receive(safeSock);
 							//check packet type
 							if (inPak instanceof TFTPerror) {
 								TFTPerror p = (TFTPerror) inPak;
@@ -74,14 +78,14 @@ class TFTPserverWRQ extends Thread {
 								//write to the file and send ack
 								bytesOut = p.write(outFile);
 								TFTPack a = new TFTPack(blkNum);
-								a.send(host, port, sock);
+								a.send(host, port, safeSock);
 								//testloss++;
 								break;
 							}
 						} catch (SocketTimeoutException t2) {
 							System.out.println("Time out, resend ack");
 							TFTPack a = new TFTPack(blkNum - 1);
-							a.send(host, port, sock);
+							a.send(host, port, safeSock);
 							timeoutLimit--;
 						}
 					}
@@ -93,7 +97,7 @@ class TFTPserverWRQ extends Thread {
 			} catch (Exception e) {
 				TFTPerror ePak = new TFTPerror(1, e.getMessage());
 				try {
-					ePak.send(host, port, sock);
+					ePak.send(host, port, safeSock);
 				} catch (Exception f) {
 				}
 

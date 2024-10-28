@@ -9,6 +9,8 @@ class TFTPclientWRQ {
 	protected InetAddress server;
 	protected String fileName;
 	protected String dataMode;
+	protected DSTPConfig config;
+
 	public TFTPclientWRQ(InetAddress ip, String name, String mode) {
 		server = ip;
 		fileName = name;
@@ -17,6 +19,8 @@ class TFTPclientWRQ {
 			// Create socket and open output file
 			DatagramSocket sock = new DatagramSocket();
 			sock.setSoTimeout(2000);
+			config = new DSTPConfig("configuration.txt");
+			DSTPSocket safeSock = new DSTPSocket(sock, config);
 			int timeoutLimit = 5;
 
 			FileInputStream source = new FileInputStream("../"+fileName);
@@ -24,9 +28,9 @@ class TFTPclientWRQ {
 			// Send request to server
 
 			TFTPwrite reqPak = new TFTPwrite(fileName, dataMode);
-			reqPak.send(server, 6973, sock);
+			reqPak.send(server, 6973, safeSock);
 
-			TFTPpacket sendRsp = TFTPpacket.receive(sock);
+			TFTPpacket sendRsp = TFTPpacket.receive(safeSock);
 			/*System.out.println("new port " + sendRsp.getPort());*/
 			int port = sendRsp.getPort(); // new port for transfer
 			//check packet type
@@ -47,7 +51,13 @@ class TFTPclientWRQ {
 				TFTPdata outPak = new TFTPdata(blkNum, source);
 				/*System.out.println("block no. " + outPak.blockNumber());*/
 				bytesRead = outPak.getLength();
-				outPak.send(server, port, sock); // send the packet
+
+				// trim the size of the outPak message to allow for termination on the server side.
+				byte[] trimmedMessage = new byte[bytesRead];
+				System.arraycopy(outPak.message, 0, trimmedMessage, 0, bytesRead);
+				outPak.message = trimmedMessage;
+
+				outPak.send(server, port, safeSock); // send the packet
 				
 				//visual effect to user
 				if(blkNum%500==0){System.out.print("\b.>");}
@@ -55,7 +65,7 @@ class TFTPclientWRQ {
 
 				while (timeoutLimit != 0) { // wait for the correct ack
 					try {
-						TFTPpacket ack = TFTPpacket.receive(sock);
+						TFTPpacket ack = TFTPpacket.receive(safeSock);
 						if (!(ack instanceof TFTPack)) {
 							break;
 						}
@@ -76,7 +86,7 @@ class TFTPclientWRQ {
 						break;
 					} catch (SocketTimeoutException t0) {
 						System.out.println("Resend blk " + blkNum);
-						outPak.send(server, port, sock); // resend the last
+						outPak.send(server, port, safeSock); // resend the last
 															// packet
 						timeoutLimit--;
 					}
@@ -88,6 +98,7 @@ class TFTPclientWRQ {
 			}
 			source.close();
 			sock.close();
+			safeSock.close();
 			
 			System.out.println("\nUpload finished!\nFilename: "+fileName);
 			System.out.println("SHA-256 Checksum: " + CheckSum.getChecksum("../"+fileName));
@@ -96,9 +107,9 @@ class TFTPclientWRQ {
 			System.out.println("No response from sever, please try again");
 		} catch (IOException e) {
 			System.out.println("IO error, transfer aborted");
-		} catch (TftpException e) {
+		} catch (Exception e) {
 			System.out.println(e.getMessage());
-		}
-	}
+        }
+    }
 
 }

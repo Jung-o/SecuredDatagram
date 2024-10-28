@@ -13,6 +13,9 @@ class TFTPserverRRQ extends Thread {
 	protected TFTPpacket req;
 	protected int timeoutLimit=5;
 	protected String fileName;
+	protected DSTPConfig config;
+	protected DSTPSocket safeSock;
+
 
 	// initialize read request
 	public TFTPserverRRQ(TFTPread request) throws TftpException {
@@ -21,6 +24,8 @@ class TFTPserverRRQ extends Thread {
 			//open new socket with random port num for tranfer
 			sock = new DatagramSocket();
 			sock.setSoTimeout(1000);
+			config = new DSTPConfig("configuration.txt");
+			safeSock = new DSTPSocket(sock, config);
 			fileName = request.fileName();
 
 			host = request.getAddress();
@@ -39,7 +44,9 @@ class TFTPserverRRQ extends Thread {
 		} catch (Exception e) {
 			TFTPerror ePak = new TFTPerror(1, e.getMessage()); // error code 1
 			try {
-				ePak.send(host, port, sock);
+				config = new DSTPConfig("configuration.txt");
+				safeSock = new DSTPSocket(sock, config);
+				ePak.send(host, port, safeSock);
 			} catch (Exception f) {
 			}
 
@@ -56,14 +63,20 @@ class TFTPserverRRQ extends Thread {
 					TFTPdata outPak = new TFTPdata(blkNum, source);
 					/*System.out.println("send block no. " + outPak.blockNumber()); */
 					bytesRead = outPak.getLength();
+
+					// trim the size of the outPak message to allow for termination on the client side.
+					byte[] trimmedMessage = new byte[bytesRead];
+					System.arraycopy(outPak.message, 0, trimmedMessage, 0, bytesRead);
+					outPak.message = trimmedMessage;
+
 					/*System.out.println("bytes sent:  " + bytesRead);*/
-					outPak.send(host, port, sock);
+					outPak.send(host, port, safeSock);
 					/*System.out.println("current op code  " + outPak.get(0)); */
 					
 					//wait for the correct ack. if incorrect, retry up to 5 times
 					while (timeoutLimit!=0) { 
 						try {
-							TFTPpacket ack = TFTPpacket.receive(sock);
+							TFTPpacket ack = TFTPpacket.receive(safeSock);
 							if (!(ack instanceof TFTPack)){throw new Exception("Client failed");}
 							TFTPack a = (TFTPack) ack;
 							
@@ -75,7 +88,7 @@ class TFTPserverRRQ extends Thread {
 						catch (SocketTimeoutException t) {//resend last packet
 							System.out.println("Resent blk " + blkNum);
 							timeoutLimit--;
-							outPak.send(host, port, sock);
+							outPak.send(host, port, safeSock);
 						}
 					} // end of while
 					if(timeoutLimit==0){throw new Exception("connection failed");}
@@ -86,7 +99,7 @@ class TFTPserverRRQ extends Thread {
 				TFTPerror ePak = new TFTPerror(1, e.getMessage());
 
 				try {
-					ePak.send(host, port, sock);
+					ePak.send(host, port, safeSock);
 				} catch (Exception f) {
 				}
 

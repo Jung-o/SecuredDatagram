@@ -44,21 +44,28 @@ public class TFTPpacket {
   // Address info (required for replies)
   protected InetAddress host;
   protected int port;
+  protected static DSTPConfig config;
+
 
   // Constructor 
   public TFTPpacket() {
     message=new byte[maxTftpPakLen]; 
-    length=maxTftpPakLen; 
+    length=maxTftpPakLen;
+    try {
+        config = new DSTPConfig("configuration.txt");
+    } catch (Exception e){
+        System.out.println(e.getMessage());
+        config = null;
+    }
   } 
 
   // Methods to receive packet and convert it to yhe right type(data/ack/read/...)
-  public static TFTPpacket receive(DatagramSocket sock) throws IOException {
+  public static TFTPpacket receive(DSTPSocket sock) throws IOException {
     TFTPpacket in=new TFTPpacket(), retPak=new TFTPpacket();
     //receive data and put them into in.message
-    DatagramPacket inPak = new DatagramPacket(in.message,in.length);
-    sock.receive(inPak); 
-    
-    //Check the opcode in message, then cast the message into the corresponding type
+    DatagramPacket inPak = new DatagramPacket(in.message, in.length);
+    in.message = sock.receive(inPak);
+      //Check the opcode in message, then cast the message into the corresponding type
     switch (in.get(0)) {
       case tftpRRQ:
     	  retPak=new TFTPread();
@@ -85,8 +92,8 @@ public class TFTPpacket {
   }
   
   //Method to send packet
-  public void send(InetAddress ip, int port, DatagramSocket s) throws IOException {
-    s.send(new DatagramPacket(message,length,ip,port));
+  public void send(InetAddress ip, int port, DSTPSocket s) throws Exception {
+    s.send(message,ip,port);
   }
 
   // DatagramPacket like methods

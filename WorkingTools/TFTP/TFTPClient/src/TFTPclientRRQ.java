@@ -9,6 +9,7 @@ class TFTPclientRRQ {
 	protected InetAddress server;
 	protected String fileName;
 	protected String dataMode;
+	protected DSTPConfig config;
 
 	public TFTPclientRRQ(InetAddress ip, String name, String mode) {
 		server = ip;
@@ -18,11 +19,13 @@ class TFTPclientRRQ {
 		try {// Create socket and open output file
 			DatagramSocket sock = new DatagramSocket();
 			sock.setSoTimeout(2000); // set time out to 2s
+			config = new DSTPConfig("configuration.txt");
+			DSTPSocket safeSock = new DSTPSocket(sock, config);
 
 			FileOutputStream outFile = new FileOutputStream("../"+fileName); //parent folder
 			// Send request to server
 			TFTPread reqPak = new TFTPread(fileName, dataMode);
-			reqPak.send(server, 6973, sock);
+			reqPak.send(server, 6973, safeSock);
 
 			TFTPack ack = null;
 			InetAddress newIP = server; // for transfer
@@ -35,7 +38,7 @@ class TFTPclientRRQ {
 			for (int blkNum = 1, bytesOut = 512; bytesOut == 512; blkNum++) {
 				while (timeoutLimit != 0) {
 					try {
-						TFTPpacket inPak = TFTPpacket.receive(sock);
+						TFTPpacket inPak = TFTPpacket.receive(safeSock);
 						//check packet type
 						if (inPak instanceof TFTPerror) {
 							TFTPerror p = (TFTPerror) inPak;
@@ -68,7 +71,7 @@ class TFTPclientRRQ {
 							bytesOut = p.write(outFile);
 							// send ack to the server
 							ack = new TFTPack(blkNum);
-							ack.send(newIP, newPort, sock);
+							ack.send(newIP, newPort, safeSock);
 							// testloss++;
 							break;
 						} else
@@ -79,14 +82,14 @@ class TFTPclientRRQ {
 						// no response to read request, try again
 						if (blkNum == 1) { 
 							System.out.println("failed to reach the server");
-							reqPak.send(server, 6973, sock);
+							reqPak.send(server, 6973, safeSock);
 							timeoutLimit--;
 						} 
 						// no response to the last ack
 						else { 
 							System.out.println("connecion time out, resend last ack. timeoutlimit left=" + timeoutLimit);
 							ack = new TFTPack(blkNum - 1);
-							ack.send(newIP, newPort, sock);
+							ack.send(newIP, newPort, safeSock);
 							timeoutLimit--;
 						}
 					}
@@ -100,11 +103,12 @@ class TFTPclientRRQ {
 			
 			outFile.close();
 			sock.close();
+			safeSock.close();
 		} catch (IOException e) {
 			System.out.println("IO error, transfer aborted");
 			File wrongFile = new File(fileName);
 			wrongFile.delete();
-		} catch (TftpException e) {
+		} catch (Exception e) {
 			System.out.println(e.getMessage());
 			File wrongFile = new File(fileName);
 			wrongFile.delete();

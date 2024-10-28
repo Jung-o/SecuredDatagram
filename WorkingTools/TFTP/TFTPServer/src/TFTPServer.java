@@ -8,11 +8,14 @@ public class TFTPServer {
 		try {
 			//use port 6973
 			DatagramSocket sock = new DatagramSocket(6973);
+
+			DSTPConfig config = new DSTPConfig("configuration.txt");
 			System.out.println("Server Ready.  Port:  " + sock.getLocalPort());
 
 			// Listen for requests
 			while (true) {
-				TFTPpacket in = TFTPpacket.receive(sock);
+				DSTPSocket safeSocket = new DSTPSocket(sock, config);
+				TFTPpacket in = TFTPpacket.receive(safeSocket);
 				// receive read request
 				if (in instanceof TFTPread) {
 					System.out.println("Read Request from " + in.getAddress());
@@ -30,6 +33,8 @@ public class TFTPServer {
 			System.out.println("Server terminated(TftpException)" + e.getMessage());
 		} catch (IOException e) {
 			System.out.println("Server terminated(IOException)" + e.getMessage());
-		}
-	}
+		} catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
 }
