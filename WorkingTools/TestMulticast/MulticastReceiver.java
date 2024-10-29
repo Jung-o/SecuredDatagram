@@ -21,14 +21,7 @@ public class MulticastReceiver {
     MulticastSocket rs = new MulticastSocket(port) ;
     rs.joinGroup(group);
 
-    DSTPConfig config = null;
-    try {
-        // Load configuration from file
-        config = new DSTPConfig("configuration.txt");
-    } catch (Exception e) {
-        System.err.println("Couldn't file configuration.txt file...") ;
-        System.exit(0) ;
-    }
+    DSTPConfig config = new DSTPConfig("configuration.txt");
 
     DSTPSocket safeReceivingSocket = new DSTPSocket(rs, config);
 

@@ -3,15 +3,7 @@ import java.net.InetAddress;
 public class TestClient {
     public static void main(String[] args) {
         String configFilename = "configuration.txt";
-        DSTPConfig config;
-        try {
-            // Load configuration from file
-            config = new DSTPConfig(configFilename);
-        } catch (Exception e) {
-            System.err.println(e);
-            e.printStackTrace();
-            return;
-        }
+        DSTPConfig config = new DSTPConfig(configFilename);
 
         // Create secure sockets using configuration
         DSTPSocket socket;

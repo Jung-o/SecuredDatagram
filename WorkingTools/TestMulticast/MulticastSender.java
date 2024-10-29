@@ -22,14 +22,7 @@ public class MulticastSender {
     }
 
     MulticastSocket ms = new MulticastSocket() ;
-    DSTPConfig config = null;
-    try {
-        // Load configuration from file
-        config = new DSTPConfig("configuration.txt");
-    } catch (Exception e) {
-        System.err.println("Couldn't file configuration.txt file...") ;
-        System.exit(0) ;
-    }
+    DSTPConfig config = new DSTPConfig("configuration.txt");
 
     DSTPSocket safeSendingSocket = new DSTPSocket(ms, config);
 

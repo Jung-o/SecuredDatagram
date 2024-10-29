@@ -1,5 +1,7 @@
+import javax.crypto.Cipher;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.IvParameterSpec;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.security.Key;
@@ -8,76 +10,82 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class DSTPConfig {
-    private final Key encryptionKey;
+    private Key encryptionKey;
     private Key macKey;
-    private final boolean useIV;
-    private final int ivSize;
-    private final byte[] iv;
+    private boolean useIV;
+    private int ivSize;
+    private byte[] iv;
     private Mac mac;
     private MessageDigest messageDigest;
-    private final boolean useHMAC;
-    private final String cipherAlgorithm;
-    private final String algorithm;
-    private final int version;
-    private final int release;
+    private boolean useHMAC;
+    private String cipherAlgorithm;
+    private String algorithm;
+    private int version;
+    private int release;
 
-    public DSTPConfig(String configFilePath) throws Exception {
-        this.version = 1;
-        this.release = 1;
-        byte[] ivParsed;
-        boolean useIVParsed;
-        int ivSizeParsed;
-        // Parse the configuration file
-        Map<String, String> config = parseConfig(configFilePath);
-
-        // Extract configuration parameters
-        this.cipherAlgorithm = config.get("CONFIDENTIALITY");
-        this.algorithm = extractAlgorithm(cipherAlgorithm);
-        String symmetricKeyHex = config.get("SYMMETRIC_KEY");
-        int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
-
+    public DSTPConfig(String configFilePath)  {
         try {
-            ivSizeParsed = Integer.parseInt(config.get("IV_SIZE"));
-            useIVParsed = true;
-            ivParsed = hexStringToByteArray(config.get("IV"));
-        } catch (NumberFormatException e){
-            ivSizeParsed = 0;
-            useIVParsed = false;
-            ivParsed = "NULL".getBytes();
-        }
-        this.iv = ivParsed;
-        this.useIV = useIVParsed;
-        this.ivSize = ivSizeParsed;
-        String integrityType = config.get("INTEGRITY");
-        String hashAlgorithm = config.get("H");
-        String macAlgorithm = config.get("MAC");
-        String macKeyHex = config.get("MACKEY");
-        int macKeySize = Integer.parseInt(config.get("MACKEY_SIZE"));
+            this.version = 1;
+            this.release = 1;
+            byte[] ivParsed;
+            boolean useIVParsed;
+            int ivSizeParsed;
+            // Parse the configuration file
+            Map<String, String> config = parseConfig(configFilePath);
 
-        // Initialize encryption key
-        if (symmetricKeyHex.length() * 8 != symmetricKeySize) {
-            throw new IllegalArgumentException("Symmetric key size does not match the provided key.");
-        }
-        this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), algorithm);
+            // Extract configuration parameters
+            this.cipherAlgorithm = config.get("CONFIDENTIALITY");
+            this.algorithm = extractAlgorithm(cipherAlgorithm);
+            String symmetricKeyHex = config.get("SYMMETRIC_KEY");
+            int symmetricKeySize = Integer.parseInt(config.get("SYMMETRIC_KEY_SIZE"));
 
-
-        if ("HMAC".equalsIgnoreCase(integrityType)) {
-            this.useHMAC = true;
-            // Initialize MAC key
-            if (macKeyHex.length() * 8 != macKeySize) {
-                throw new IllegalArgumentException("MAC key size does not match the provided key.");
+            try {
+                ivSizeParsed = Integer.parseInt(config.get("IV_SIZE"));
+                useIVParsed = true;
+                ivParsed = hexStringToByteArray(config.get("IV"));
+            } catch (NumberFormatException e) {
+                ivSizeParsed = 0;
+                useIVParsed = false;
+                ivParsed = "NULL".getBytes();
             }
-            this.macKey = new SecretKeySpec(macKeyHex.getBytes(), macAlgorithm);
+            this.iv = ivParsed;
+            this.useIV = useIVParsed;
+            this.ivSize = ivSizeParsed;
+            String integrityType = config.get("INTEGRITY");
+            String hashAlgorithm = config.get("H");
+            String macAlgorithm = config.get("MAC");
+            String macKeyHex = config.get("MACKEY");
+            int macKeySize = Integer.parseInt(config.get("MACKEY_SIZE"));
 
-            // Initialize MAC
-            this.mac = Mac.getInstance(macAlgorithm);
-            this.mac.init(macKey);
-        } else if ("H".equalsIgnoreCase(integrityType)) {
-            this.useHMAC = false;
-            // Initialize MessageDigest for hashing
-            this.messageDigest = MessageDigest.getInstance(hashAlgorithm);
-        } else {
-            throw new IllegalArgumentException("Invalid INTEGRITY type: must be either 'HMAC' or 'HASH'");
+            // Initialize encryption key
+            if (symmetricKeyHex.length() * 8 != symmetricKeySize) {
+                throw new IllegalArgumentException("Symmetric key size does not match the provided key.");
+            }
+            this.encryptionKey = new SecretKeySpec(symmetricKeyHex.getBytes(), algorithm);
+
+
+            if ("HMAC".equalsIgnoreCase(integrityType)) {
+                this.useHMAC = true;
+                // Initialize MAC key
+                if (macKeyHex.length() * 8 != macKeySize) {
+                    throw new IllegalArgumentException("MAC key size does not match the provided key.");
+                }
+                this.macKey = new SecretKeySpec(macKeyHex.getBytes(), macAlgorithm);
+
+                // Initialize MAC
+                this.mac = Mac.getInstance(macAlgorithm);
+                this.mac.init(macKey);
+            } else if ("H".equalsIgnoreCase(integrityType)) {
+                this.useHMAC = false;
+                // Initialize MessageDigest for hashing
+                this.messageDigest = MessageDigest.getInstance(hashAlgorithm);
+            } else {
+                throw new IllegalArgumentException("Invalid INTEGRITY type: must be either 'HMAC' or 'HASH'");
+            }
+        } catch (Exception e) {
+            System.err.println("Couldn't create configuration. Error:");
+            System.err.println(e.getMessage());
+            System.exit(0);
         }
     }
 

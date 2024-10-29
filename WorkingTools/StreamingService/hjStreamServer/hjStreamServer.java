@@ -21,14 +21,7 @@ class hjStreamServer {
 	         System.exit(-1);
 	         }
 
-		DSTPConfig config = null;
-		try {
-			// Load configuration from file
-			config= new DSTPConfig("configuration.txt");
-		} catch (Exception e) {
-			System.err.println("Couldn't file configuration.txt file...") ;
-			System.exit(0) ;
-		}
+		DSTPConfig config= new DSTPConfig("configuration.txt");
 
 		int size;
 		int count = 0;

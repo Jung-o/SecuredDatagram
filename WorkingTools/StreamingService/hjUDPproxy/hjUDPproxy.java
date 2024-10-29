@@ -28,13 +28,7 @@ class hjUDPproxy {
         String destinations=args[1]; //resend mediastream to this destination endpoint
 
 
-        DSTPConfig config = null;
-        try {
-            config = new DSTPConfig("configuration.txt");
-        } catch (Exception e) {
-            System.err.println("Couldn't file configuration.txt file...") ;
-            System.exit(0) ;
-        }
+        DSTPConfig config = new DSTPConfig("configuration.txt");
 
         InetSocketAddress inSocketAddress = parseSocketAddress(remote);
         Set<SocketAddress> outSocketAddressSet = Arrays.stream(destinations.split(",")).map(s -> parseSocketAddress(s)).collect(Collectors.toSet());
